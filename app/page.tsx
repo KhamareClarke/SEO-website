@@ -18,6 +18,240 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 export default function Home() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [chatOpen, setChatOpen] = React.useState(false);
+  const [chatMessages, setChatMessages] = React.useState([
+    {
+      id: 1,
+      type: 'assistant',
+      content: 'Hi! Need a free SEO audit or help planning your rankings?',
+      timestamp: new Date()
+    }
+  ]);
+  const [userInput, setUserInput] = React.useState('');
+  const [isTyping, setIsTyping] = React.useState(false);
+  const [showDataForm, setShowDataForm] = React.useState(false);
+  const [formType, setFormType] = React.useState<'audit' | 'booking' | null>(null);
+  const [userData, setUserData] = React.useState({
+    name: '',
+    email: '',
+    phone: '',
+    domain: ''
+  });
+  const [formErrors, setFormErrors] = React.useState<{[key: string]: string}>({});
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom of chat
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  React.useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages, isTyping]);
+
+  // Chat functionality
+  const handleSendMessage = async () => {
+    if (!userInput.trim()) return;
+
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: userInput.trim(),
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setUserInput('');
+    setIsTyping(true);
+
+    // Simulate AI response delay
+    setTimeout(() => {
+      const response = generateAIResponse(userInput.trim());
+      const assistantMessage = {
+        id: Date.now() + 1,
+        type: 'assistant',
+        content: response,
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, assistantMessage]);
+      setIsTyping(false);
+    }, 1500);
+  };
+
+  const generateAIResponse = (userInput: string) => {
+    const input = userInput.toLowerCase();
+    
+    // SEO audit related responses
+    if (input.includes('audit') || input.includes('analyze') || input.includes('check')) {
+      setFormType('audit');
+      setShowDataForm(true);
+      return "I'd be happy to help you run a free SEO audit! Please fill out the form below with your details and domain name, and I'll analyze your website's SEO performance, identify technical issues, and provide actionable recommendations to improve your rankings.";
+    }
+    
+    // Pricing related responses
+    if (input.includes('price') || input.includes('cost') || input.includes('plan')) {
+      return "We offer flexible pricing plans:\n\n• Starter: £49/mo - Perfect for small sites (100 keywords)\n• Growth: £249/mo - For growing teams (1,000 keywords)\n• Empire: £499/mo - For agencies (unlimited keywords)\n\nWe also offer Done-For-You SEO services starting from £497/mo. Would you like to book a consultation to discuss which option is best for you?";
+    }
+    
+    // Features related responses
+    if (input.includes('feature') || input.includes('tool') || input.includes('capability')) {
+      return "SEOInForce offers powerful features:\n\n• AI-powered SEO audits\n• Competitor analysis & battle reports\n• Keyword tracking & rank monitoring\n• White-label reports for agencies\n• Technical SEO recommendations\n• Content optimization insights\n• Link building opportunities\n\nWhich specific feature interests you most?";
+    }
+    
+    // Support related responses
+    if (input.includes('help') || input.includes('support') || input.includes('problem')) {
+      return "I'm here to help! I can assist you with:\n\n• Running free SEO audits\n• Explaining our features and pricing\n• Booking consultations\n• Technical SEO questions\n• General SEO advice\n\nWhat would you like to know more about?";
+    }
+    
+    // Consultation booking
+    if (input.includes('book') || input.includes('consultation') || input.includes('meeting')) {
+      setFormType('booking');
+      setShowDataForm(true);
+      return "Great! I can help you book a consultation with our SEO experts. Please fill out the form below with your details, and I'll redirect you to our booking calendar where you can schedule a 30-minute call where we'll:\n\n• Analyze your current SEO performance\n• Create a custom strategy for your goals\n• Answer all your SEO questions";
+    }
+    
+    // Default responses
+    if (input.includes('hello') || input.includes('hi') || input.includes('hey')) {
+      return "Hello! I'm the SEOInForce Assistant. I can help you with SEO audits, competitor analysis, pricing information, and booking consultations. What can I help you with today?";
+    }
+    
+    if (input.includes('thank') || input.includes('thanks')) {
+      return "You're welcome! Is there anything else I can help you with regarding SEO or our services?";
+    }
+    
+    // Fallback response
+    return "I understand you're interested in SEO services. I can help you with:\n\n• Free SEO audits\n• Pricing information\n• Feature explanations\n• Booking consultations\n• General SEO advice\n\nWhat would you like to know more about?";
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // Form validation
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    
+    if (!userData.name.trim()) {
+      errors.name = 'Name is required';
+    }
+    
+    if (!userData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+    
+    if (!userData.phone.trim()) {
+      errors.phone = 'Phone number is required';
+    } else if (!/^[\+]?[1-9][\d]{0,15}$/.test(userData.phone.replace(/[\s\-\(\)]/g, ''))) {
+      errors.phone = 'Please enter a valid phone number';
+    }
+    
+    if (formType === 'audit' && !userData.domain.trim()) {
+      errors.domain = 'Domain is required for SEO audit';
+    } else if (formType === 'audit' && userData.domain.trim() && !/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/.test(userData.domain.trim())) {
+      errors.domain = 'Please enter a valid domain (e.g., example.com)';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Handle form submission
+  const handleFormSubmit = async () => {
+    if (!validateForm()) return;
+    
+    // Store user data
+    const userInfo = {
+      ...userData,
+      formType,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      referrer: document.referrer
+    };
+    
+    // Store in localStorage for demo purposes
+    const existingData = JSON.parse(localStorage.getItem('seoinforce_leads') || '[]');
+    existingData.push(userInfo);
+    localStorage.setItem('seoinforce_leads', JSON.stringify(existingData));
+    
+    // Send email notification
+    try {
+      const emailData = {
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        domain: userData.domain,
+        timestamp: userInfo.timestamp
+      };
+
+      if (formType === 'audit') {
+        const response = await fetch('/api/send-audit-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(emailData),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to send audit email');
+        }
+      } else if (formType === 'booking') {
+        const response = await fetch('/api/send-booking-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: userData.name,
+            email: userData.email,
+            phone: userData.phone,
+            timestamp: userInfo.timestamp
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to send booking email');
+        }
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      // Continue with the flow even if email fails
+    }
+    
+    // Add confirmation message to chat
+    const confirmationMessage = {
+      id: Date.now(),
+      type: 'assistant',
+      content: `Thank you ${userData.name}! Your information has been recorded and we've been notified. ${formType === 'audit' ? 'We\'ll analyze your domain and send you the SEO audit report shortly.' : 'Redirecting you to our booking calendar...'}`,
+      timestamp: new Date()
+    };
+    
+    setChatMessages(prev => [...prev, confirmationMessage]);
+    setShowDataForm(false);
+    setFormType(null);
+    setUserData({ name: '', email: '', phone: '', domain: '' });
+    setFormErrors({});
+    
+    // Redirect to Calendly
+    if (formType === 'booking') {
+      setTimeout(() => {
+        window.open('https://calendly.com/khamareclarke/new-meeting', '_blank');
+      }, 2000);
+    }
+  };
+
+  // Handle input changes
+  const handleInputChange = (field: string, value: string) => {
+    setUserData(prev => ({ ...prev, [field]: value }));
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
   const testimonials = [
     {
         quote: '"Our traffic grew 212% in 6 months thanks to SEOInForce."',
@@ -746,6 +980,7 @@ export default function Home() {
                 <li><a href="#" className="hover:text-[#FFD700] font-medium">Privacy Policy</a></li>
                 <li><a href="#" className="hover:text-[#FFD700] font-medium">Terms of Service</a></li>
                 <li><a href="#" className="hover:text-[#FFD700] font-medium">GDPR</a></li>
+                <li><a href="/admin/leads" className="hover:text-[#FFD700] font-medium">Admin Dashboard</a></li>
               </ul>
             </div>
             {/* Stay Updated */}
@@ -795,27 +1030,205 @@ export default function Home() {
               </span>
               <span className="font-extrabold text-sm sm:text-base md:text-lg tracking-tight text-white">SEOInForce Assistant</span>
             </div>
-            <button aria-label="Close chat" onClick={() => setChatOpen(false)} className="text-[#FFD700] hover:text-white">
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                aria-label="Clear chat" 
+                onClick={() => setChatMessages([{
+                  id: 1,
+                  type: 'assistant',
+                  content: 'Hi! Need a free SEO audit or help planning your rankings?',
+                  timestamp: new Date()
+                }])}
+                className="text-[#C0C0C0] hover:text-white text-xs px-2 py-1 rounded"
+                title="Clear conversation"
+              >
+                Clear
+              </button>
+              <button aria-label="Close chat" onClick={() => setChatOpen(false)} className="text-[#FFD700] hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
           <div className="max-h-72 overflow-auto p-4 space-y-3">
-            <div className="text-base font-medium hero-gradient-text bg-black/90 border-2 border-yellow-400/20 rounded-xl p-4 w-fit max-w-[85%] shadow">Hi! Need a free SEO audit or help planning your rankings?</div>
-            <div className="text-base text-[#FFD700] bg-[#232323] border border-yellow-400/20 rounded-xl p-4 w-fit max-w-[85%] ml-auto font-semibold">I want to analyze my domain.</div>
-            <div className="text-xs text-[#FFD700] font-bold italic mt-2">Tip: Try "Run a free SEO audit"</div>
+            {chatMessages.map((message) => (
+              <div
+                key={message.id}
+                className={`text-base rounded-xl p-4 w-fit max-w-[85%] ${
+                  message.type === 'assistant'
+                    ? 'font-medium hero-gradient-text bg-black/90 border-2 border-yellow-400/20 shadow'
+                    : 'text-[#FFD700] bg-[#232323] border border-yellow-400/20 ml-auto font-semibold'
+                }`}
+              >
+                <div className="whitespace-pre-line">{message.content}</div>
+                <div className="text-xs text-[#C0C0C0] mt-1 opacity-70">
+                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            ))}
+            {isTyping && (
+              <div className="text-base font-medium hero-gradient-text bg-black/90 border-2 border-yellow-400/20 rounded-xl p-4 w-fit max-w-[85%] shadow">
+                <div className="flex items-center gap-2">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                  <span>Assistant is typing...</span>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
           </div>
+          
+          {/* Data Collection Form */}
+          {showDataForm && (
+            <div className="p-4 border-t border-[#d9d9d9]/30 bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10">
+              <div className="mb-3">
+                <h4 className="text-sm font-bold hero-gradient-text mb-2">
+                  {formType === 'audit' ? 'Free SEO Audit Request' : 'Book Your Consultation'}
+                </h4>
+                <p className="text-xs text-[#C0C0C0]">
+                  {formType === 'audit' 
+                    ? 'Please provide your details to receive your free SEO audit report.'
+                    : 'Please provide your details to access our booking calendar.'
+                  }
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Full Name *"
+                    value={userData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className="w-full bg-gradient-to-b from-[#0b0b0b] via-[#1a1a1a] to-[#e5e5e5]/10 border border-[#d9d9d9]/30 text-white placeholder:text-[#C0C0C0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  />
+                  {formErrors.name && <p className="text-xs text-red-400 mt-1">{formErrors.name}</p>}
+                </div>
+                
+                <div>
+                  <input
+                    type="email"
+                    placeholder="Email Address *"
+                    value={userData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className="w-full bg-gradient-to-b from-[#0b0b0b] via-[#1a1a1a] to-[#e5e5e5]/10 border border-[#d9d9d9]/30 text-white placeholder:text-[#C0C0C0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  />
+                  {formErrors.email && <p className="text-xs text-red-400 mt-1">{formErrors.email}</p>}
+                </div>
+                
+                <div>
+                  <input
+                    type="tel"
+                    placeholder="Phone Number *"
+                    value={userData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    className="w-full bg-gradient-to-b from-[#0b0b0b] via-[#1a1a1a] to-[#e5e5e5]/10 border border-[#d9d9d9]/30 text-white placeholder:text-[#C0C0C0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  />
+                  {formErrors.phone && <p className="text-xs text-red-400 mt-1">{formErrors.phone}</p>}
+                </div>
+                
+                {formType === 'audit' && (
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Website Domain (e.g., example.com) *"
+                      value={userData.domain}
+                      onChange={(e) => handleInputChange('domain', e.target.value)}
+                      className="w-full bg-gradient-to-b from-[#0b0b0b] via-[#1a1a1a] to-[#e5e5e5]/10 border border-[#d9d9d9]/30 text-white placeholder:text-[#C0C0C0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                    />
+                    {formErrors.domain && <p className="text-xs text-red-400 mt-1">{formErrors.domain}</p>}
+                  </div>
+                )}
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleFormSubmit}
+                    className="flex-1 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold py-2 px-4 rounded-lg text-sm hover:bg-yellow-300 transition-colors"
+                  >
+                    {formType === 'audit' ? 'Get Free Audit' : 'Book Consultation'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDataForm(false);
+                      setFormType(null);
+                      setUserData({ name: '', email: '', phone: '', domain: '' });
+                      setFormErrors({});
+                    }}
+                    className="px-4 py-2 bg-[#232323] text-[#C0C0C0] rounded-lg text-sm hover:bg-[#2a2a2a] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="p-3 border-t border-[#d9d9d9]/30 bg-black/20">
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 placeholder="Type your message..."
-                className="flex-1 bg-gradient-to-b from-[#0b0b0b] via-[#1a1a1a] to-[#e5e5e5]/10 border border-[#d9d9d9]/30 text-white placeholder:text-[#C0C0C0] rounded-lg px-3 py-2 text-sm focus:outline-none"
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                disabled={isTyping}
+                className="flex-1 bg-gradient-to-b from-[#0b0b0b] via-[#1a1a1a] to-[#e5e5e5]/10 border border-[#d9d9d9]/30 text-white placeholder:text-[#C0C0C0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/50 disabled:opacity-50"
               />
-              <button className="px-3 py-2 rounded-lg bg-yellow-500 text-slate-900 hover:bg-yellow-400">
+              <button 
+                onClick={handleSendMessage}
+                disabled={!userInput.trim() || isTyping}
+                className="px-3 py-2 rounded-lg bg-yellow-500 text-slate-900 hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
                 <Send className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-[11px] text-[#C0C0C0] mt-2">Tip: Try "Run a free SEO audit"</p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <button
+                onClick={() => {
+                  setFormType('audit');
+                  setShowDataForm(true);
+                  const auditMessage = {
+                    id: Date.now(),
+                    type: 'user',
+                    content: 'Run a free SEO audit',
+                    timestamp: new Date()
+                  };
+                  setChatMessages(prev => [...prev, auditMessage]);
+                }}
+                className="text-[10px] px-2 py-1 bg-yellow-400/20 text-yellow-400 rounded-full hover:bg-yellow-400/30 transition-colors"
+              >
+                Free Audit
+              </button>
+              <button
+                onClick={() => setUserInput("What are your pricing plans?")}
+                className="text-[10px] px-2 py-1 bg-yellow-400/20 text-yellow-400 rounded-full hover:bg-yellow-400/30 transition-colors"
+              >
+                Pricing
+              </button>
+              <button
+                onClick={() => setUserInput("What features do you offer?")}
+                className="text-[10px] px-2 py-1 bg-yellow-400/20 text-yellow-400 rounded-full hover:bg-yellow-400/30 transition-colors"
+              >
+                Features
+              </button>
+              <button
+                onClick={() => {
+                  setFormType('booking');
+                  setShowDataForm(true);
+                  const bookingMessage = {
+                    id: Date.now(),
+                    type: 'user',
+                    content: 'Book a consultation',
+                    timestamp: new Date()
+                  };
+                  setChatMessages(prev => [...prev, bookingMessage]);
+                }}
+                className="text-[10px] px-2 py-1 bg-yellow-400/20 text-yellow-400 rounded-full hover:bg-yellow-400/30 transition-colors"
+              >
+                Book Call
+              </button>
+            </div>
           </div>
         </div>
       )}
