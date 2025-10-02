@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Test API error:', error);
     return NextResponse.json(
-      { error: 'Test failed', details: error.message },
+      { error: 'Test failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
